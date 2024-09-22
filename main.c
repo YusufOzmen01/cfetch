@@ -316,15 +316,18 @@ struct ASCIIArt* get_ascii_art() {
 
         size = 0;
         while (size < count && filedata[size] != '\n') size++;
+        if (size >= count) break;
 
         if (size > max_size) max_size = size;
 
         lines[line_count] = calloc(sizeof(char), size);
         strncpy(lines[line_count], filedata, size);
 
-        filedata += size + 1;
+        filedata += size + 2;
         line_count++;
     }
+
+    lines = realloc(lines, sizeof(char*) * line_count);
 
     art->lines = lines;
     art->max_size = max_size;
@@ -334,8 +337,6 @@ struct ASCIIArt* get_ascii_art() {
 
 void main() {
     struct ASCIIArt* art = get_ascii_art();
-    printf("Max size: %d\n", art->max_size);
-
     char* hostname = get_hostname();
     char* username = get_username();
     char* shell = get_shell();
