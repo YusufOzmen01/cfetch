@@ -13,7 +13,7 @@ char* get_hostname() {
     stat("/etc/hostname", &file_stat);
     hostname_file = fopen("/etc/hostname", "r");
 
-    char* buf = malloc(sizeof(char) * file_stat.st_size);
+    char* buf = calloc(sizeof(char), file_stat.st_size);
 
     fread(buf, sizeof(char), file_stat.st_size, hostname_file);
 
@@ -55,7 +55,7 @@ struct Disk {
 };
 
 int get_disk_information(struct Disk* disks, int max_count) {
-    char* filedata = malloc(sizeof(char) * 1000000);
+    char* filedata = calloc(sizeof(char), 1000000);
     FILE* mount_list = fopen("/proc/mounts", "r");
 
     int count = 0;
@@ -66,6 +66,8 @@ int get_disk_information(struct Disk* disks, int max_count) {
 
         count += i;
     }
+
+    fclose(mount_list);
 
     filedata = realloc(filedata, sizeof(char) * count);
     char* old = filedata;
@@ -98,7 +100,7 @@ int get_disk_information(struct Disk* disks, int max_count) {
             size++;
         }
 
-        char* mount_point = malloc(sizeof(char) * size);
+        char* mount_point = calloc(sizeof(char), size);
         strncpy(mount_point, mount_point_start, size);
 
         // Obtain the filesystem
@@ -110,7 +112,7 @@ int get_disk_information(struct Disk* disks, int max_count) {
             size++;
         }
 
-        char* filesystem = malloc(sizeof(char) * size);
+        char* filesystem = calloc(sizeof(char), size);
         strncpy(filesystem, filesystem_start, size);
 
         struct statvfs disk_stat;
@@ -137,18 +139,20 @@ struct CPU {
 };
 
 struct CPU get_cpu() {
-    char* filedata = malloc(sizeof(char) * 1000000);
-    FILE* mount_list = fopen("/proc/cpuinfo", "r");
+    char* filedata = calloc(sizeof(char), 1000000);
+    FILE* cpu_info = fopen("/proc/cpuinfo", "r");
     struct CPU cpu;
 
     int count = 0;
     while (1) {
-        int i = fread(filedata + count, sizeof(char), 64, mount_list);
+        int i = fread(filedata + count, sizeof(char), 64, cpu_info);
 
         if (i < 1) break;
 
         count += i;
     }
+
+    fclose(cpu_info);
 
     filedata = realloc(filedata, sizeof(char) * count);
 
@@ -167,7 +171,7 @@ struct CPU get_cpu() {
         size++;
     }
 
-    cpu.name = malloc(sizeof(char) * size);
+    cpu.name = calloc(sizeof(char), size);
     strncpy(cpu.name, model_name_pos + start, size);
 
     start = 0;
@@ -181,7 +185,7 @@ struct CPU get_cpu() {
         size++;
     }
 
-    char* buf = malloc(sizeof(char) * size);
+    char* buf = calloc(sizeof(char), size);
     strncpy(buf, cores_pos + start, size);
 
     cpu.core_count = atoi(buf);
@@ -198,7 +202,7 @@ struct CPU get_cpu() {
         size++;
     }
 
-    buf = malloc(sizeof(char) * size);
+    buf = calloc(sizeof(char), size);
     strncpy(buf, frequency_pos + start, size);
 
     cpu.max_frequency = atof(buf);
@@ -209,10 +213,45 @@ struct CPU get_cpu() {
     return cpu;
 }
 
+char* get_gpu_name() {
+    char* filedata = calloc(sizeof(char), 1000000);
+    FILE* pci_info = popen("lspci", "r");
+
+    int count = 0;
+    while (1) {
+        int i = fread(filedata + count, sizeof(char), 64, pci_info);
+
+        if (i < 1) break;
+
+        count += i;
+    }
+
+    pclose(pci_info);
+
+    filedata = realloc(filedata, sizeof(char) * count);
+
+    int size = 0;
+
+    char* name_pos = strstr(filedata, "3D controller");
+    if (name_pos == NULL) return NULL;
+
+    name_pos += 15;
+    
+    while (name_pos[size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
+        size++;
+    }
+
+    char* name = calloc(sizeof(char), size);
+    strncpy(name, name_pos, size);
+
+    return name;
+}
+
 void main() {
     char* hostname = get_hostname();
     char* username = get_username();
     char* shell = get_shell();
+    char* gpu_name = get_gpu_name();
     struct sysinfo info = get_sysinfo();
     struct utsname u = get_uname();
     struct CPU cpu = get_cpu();
@@ -223,12 +262,13 @@ void main() {
     
     printf("%s@%s\n", username, hostname);
     printf("CPU: %dx %s [%.2fMHz]\n", cpu.core_count, cpu.name, cpu.max_frequency);
+    if (gpu_name != NULL) printf("GPU: %s\n", gpu_name);
     printf("Uptime: %dhrs %dmins %dsecs\n", hrs, mins, secs);
     printf("Ram usage: %u/%u\n", (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
     printf("Shell: %s\n", shell);
     printf("Kernel: %s\n", u.release);
 
-    struct Disk* disklist = malloc(sizeof(struct Disk) * 10);
+    struct Disk* disklist = calloc(sizeof(struct Disk), 10);
     int count = get_disk_information(disklist, 10);
 
     for (int i = 0; i < count; i++) {

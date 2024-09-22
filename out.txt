@@ -1,0 +1,3 @@
+67c7:00:00.0 SCSI storage controller: Red Hat, Inc. Virtio 1.0 console (rev 01)
+ce85:00:00.0 3D controller: Microsoft Corporation Basic Render Driver
+fcfc:00:00.0 System peripheral: Red Hat, Inc. Virtio file system (rev 01)
