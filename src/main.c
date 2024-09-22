@@ -1,6 +1,7 @@
 #include <stdio.h>
 
 #include "info.h"
+#include "disk.h"
 
 void main() {
     char* hostname = get_hostname();
@@ -14,4 +15,11 @@ void main() {
     printf("Ram usage: %u/%u\n", (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
     printf("Shell: %s\n", shell);
     printf("Kernel: %s\n", u.release);
+
+    struct Disk* disklist = malloc(sizeof(struct Disk) * 10);
+    int count = get_disk_information(disklist, 10);
+
+    for (int i = 0; i < count; i++) {
+        printf("[%s] %u/%u - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
+    }
 }

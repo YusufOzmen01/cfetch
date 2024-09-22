@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "fcntl.h": "c",
-        "info.h": "c"
+        "info.h": "c",
+        "disk.h": "c"
     }
 }
