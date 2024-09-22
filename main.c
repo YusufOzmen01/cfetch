@@ -130,15 +130,100 @@ int get_disk_information(struct Disk* disks, int max_count) {
     return i;
 }
 
+struct CPU {
+    char* name;
+    int core_count;
+    float max_frequency; 
+};
+
+struct CPU get_cpu() {
+    char* filedata = malloc(sizeof(char) * 1000000);
+    FILE* mount_list = fopen("/proc/cpuinfo", "r");
+    struct CPU cpu;
+
+    int count = 0;
+    while (1) {
+        int i = fread(filedata + count, sizeof(char), 64, mount_list);
+
+        if (i < 1) break;
+
+        count += i;
+    }
+
+    filedata = realloc(filedata, sizeof(char) * count);
+
+    int size = 0, start = 0;
+
+    char* model_name_pos = strstr(filedata, "model name");
+    char* cores_pos = strstr(filedata, "cpu cores");
+    char* frequency_pos = strstr(filedata, "cpu MHz");
+    
+    while (model_name_pos[start] != ':') { // Calculate the size of the mount point by looping until we hit a space
+        start++;
+    }
+    start += 2;
+    
+    while (model_name_pos[start + size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
+        size++;
+    }
+
+    cpu.name = malloc(sizeof(char) * size);
+    strncpy(cpu.name, model_name_pos + start, size);
+
+    start = 0;
+    while (cores_pos[start] != ':') { // Calculate the size of the mount point by looping until we hit a space
+        start++;
+    }
+    start += 2;
+    
+    size = 0;
+    while (cores_pos[start + size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
+        size++;
+    }
+
+    char* buf = malloc(sizeof(char) * size);
+    strncpy(buf, cores_pos + start, size);
+
+    cpu.core_count = atoi(buf);
+    free(buf);
+
+    start = 0;
+    while (frequency_pos[start] != ':') { // Calculate the size of the mount point by looping until we hit a space
+        start++;
+    }
+    start += 2;
+    
+    size = 0;
+    while (frequency_pos[start + size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
+        size++;
+    }
+
+    buf = malloc(sizeof(char) * size);
+    strncpy(buf, frequency_pos + start, size);
+
+    cpu.max_frequency = atof(buf);
+    free(buf);
+
+    free(filedata);
+
+    return cpu;
+}
+
 void main() {
     char* hostname = get_hostname();
     char* username = get_username();
     char* shell = get_shell();
     struct sysinfo info = get_sysinfo();
     struct utsname u = get_uname();
+    struct CPU cpu = get_cpu();
 
+    int hrs = (info.uptime / 3600);
+    int mins = (info.uptime / 60) - hrs * 60;
+    int secs = info.uptime - hrs * 3600 - mins * 60;
+    
     printf("%s@%s\n", username, hostname);
-    printf("Uptime: %d\n", info.uptime);
+    printf("CPU: %dx %s [%.2fMHz]\n", cpu.core_count, cpu.name, cpu.max_frequency);
+    printf("Uptime: %dhrs %dmins %dsecs\n", hrs, mins, secs);
     printf("Ram usage: %u/%u\n", (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
     printf("Shell: %s\n", shell);
     printf("Kernel: %s\n", u.release);
@@ -147,6 +232,6 @@ void main() {
     int count = get_disk_information(disklist, 10);
 
     for (int i = 0; i < count; i++) {
-        printf("[%s] %u/%u - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
+        printf("[%s] %uMiB/%uMiB - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
     }
 }
