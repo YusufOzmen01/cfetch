@@ -247,7 +247,95 @@ char* get_gpu_name() {
     return name;
 }
 
+struct ASCIIArt {
+    int max_size;
+    char** lines;
+};
+
+struct ASCIIArt* get_ascii_art() {
+    char* filedata = calloc(sizeof(char), 1000000);
+    FILE* os_info = fopen("/etc/os-release", "r");
+
+    int count = 0;
+    while (1) {
+        int i = fread(filedata + count, sizeof(char), 64, os_info);
+
+        if (i < 1) break;
+
+        count += i;
+    }
+
+    fclose(os_info);
+
+    filedata = realloc(filedata, sizeof(char) * count);
+
+    int size = 0;
+
+    char* name_pos = strstr(filedata, "ID=");
+    if (name_pos == NULL) return NULL;
+
+    name_pos += 3;
+    
+    while (name_pos[size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
+        size++;
+    }
+
+    char* id = calloc(sizeof(char), size);
+    strncpy(id, name_pos, size);
+
+    free(filedata);
+    filedata = calloc(sizeof(char), 1000000);
+
+    char* path = calloc(sizeof(char), size + 9);
+    sprintf(path, "logo/%s.txt", id);
+    free(id);
+
+    FILE* ascii_data = fopen(path, "r");
+    free(path);
+
+    count = 0;
+    while (1) {
+        int i = fread(filedata + count, sizeof(char), 64, os_info);
+
+        if (i < 1) break;
+
+        count += i;
+    }
+
+    fclose(os_info);
+
+    filedata = realloc(filedata, sizeof(char) * count);
+    char* old = filedata;
+
+    struct ASCIIArt* art = malloc(sizeof(struct ASCIIArt));
+    char** lines = calloc(sizeof(char*), 32);
+
+    int line_count = 0, max_size = 0;
+    while (1) {
+        if (filedata > old + count) break;
+
+        size = 0;
+        while (size < count && filedata[size] != '\n') size++;
+
+        if (size > max_size) max_size = size;
+
+        lines[line_count] = calloc(sizeof(char), size);
+        strcpy(lines[line_count], filedata+1 + size);
+
+        filedata += size + 2;
+        line_count++;
+    }
+
+    art->lines = lines;
+    art->max_size = max_size;
+
+    return art;
+}
+
 void main() {
+    struct ASCIIArt* art = get_ascii_art();
+    printf("Max size: %d\n", art->max_size);
+
     char* hostname = get_hostname();
     char* username = get_username();
     char* shell = get_shell();
@@ -268,8 +356,8 @@ void main() {
     printf("Shell: %s\n", shell);
     printf("Kernel: %s\n", u.release);
 
-    struct Disk* disklist = calloc(sizeof(struct Disk), 10);
-    int count = get_disk_information(disklist, 10);
+    struct Disk* disklist = calloc(sizeof(struct Disk), 5);
+    int count = get_disk_information(disklist, 5);
 
     for (int i = 0; i < count; i++) {
         printf("[%s] %uMiB/%uMiB - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
