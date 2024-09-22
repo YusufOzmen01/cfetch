@@ -1,8 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
-#include <sys/fcntl.h>
+#include "info.h"
 
 char* get_hostname() {
     FILE* hostname_file;
@@ -16,10 +12,19 @@ char* get_hostname() {
     fread(buf, sizeof(char), file_stat.st_size, hostname_file);
 
     fclose(hostname_file);
+    if (buf[file_stat.st_size-1] == '\n') buf[file_stat.st_size-1] = '\0';
 
     return buf;
 }
 
 char* get_username() {
     return getenv("USER");
+}
+
+struct sysinfo get_sysinfo() {
+    struct sysinfo info;
+
+    sysinfo(&info);
+
+    return info;
 }
