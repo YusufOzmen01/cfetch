@@ -1,4 +1,58 @@
-#include "disk.h"
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/statvfs.h>
+#include <sys/stat.h>
+#include <sys/sysinfo.h>
+#include <sys/utsname.h>
+
+char* get_hostname() {
+    FILE* hostname_file;
+    struct stat file_stat;
+
+    stat("/etc/hostname", &file_stat);
+    hostname_file = fopen("/etc/hostname", "r");
+
+    char* buf = malloc(sizeof(char) * file_stat.st_size);
+
+    fread(buf, sizeof(char), file_stat.st_size, hostname_file);
+
+    fclose(hostname_file);
+    if (buf[file_stat.st_size-1] == '\n') buf[file_stat.st_size-1] = '\0';
+
+    return buf;
+}
+
+char* get_username() {
+    return getenv("USER");
+}
+
+char* get_shell() {
+    return getenv("SHELL");
+}
+
+struct sysinfo get_sysinfo() {
+    struct sysinfo info;
+
+    sysinfo(&info);
+
+    return info;
+}
+
+struct utsname get_uname() {
+    struct utsname u;
+
+    uname(&u);
+
+    return u;
+}
+
+struct Disk {
+    char* mount_point;
+    char* filesystem;
+
+    unsigned long capacity, used;   
+};
 
 int get_disk_information(struct Disk* disks, int max_count) {
     char* filedata = malloc(sizeof(char) * 1000000);
@@ -74,4 +128,25 @@ int get_disk_information(struct Disk* disks, int max_count) {
     free(old);
 
     return i;
+}
+
+void main() {
+    char* hostname = get_hostname();
+    char* username = get_username();
+    char* shell = get_shell();
+    struct sysinfo info = get_sysinfo();
+    struct utsname u = get_uname();
+
+    printf("%s@%s\n", username, hostname);
+    printf("Uptime: %d\n", info.uptime);
+    printf("Ram usage: %u/%u\n", (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
+    printf("Shell: %s\n", shell);
+    printf("Kernel: %s\n", u.release);
+
+    struct Disk* disklist = malloc(sizeof(struct Disk) * 10);
+    int count = get_disk_information(disklist, 10);
+
+    for (int i = 0; i < count; i++) {
+        printf("[%s] %u/%u - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
+    }
 }
