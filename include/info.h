@@ -5,9 +5,15 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/sysinfo.h>
+#include <sys/utsname.h>
+
+char* get_shell();
+char* get_username();
 
 char* get_hostname();
-char* get_username();
+
 struct sysinfo get_sysinfo();
+struct utsname get_uname();
+
 
 #endif

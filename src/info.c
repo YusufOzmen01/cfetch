@@ -21,10 +21,22 @@ char* get_username() {
     return getenv("USER");
 }
 
+char* get_shell() {
+    return getenv("SHELL");
+}
+
 struct sysinfo get_sysinfo() {
     struct sysinfo info;
 
     sysinfo(&info);
 
     return info;
+}
+
+struct utsname get_uname() {
+    struct utsname u;
+
+    uname(&u);
+
+    return u;
 }
