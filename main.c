@@ -233,9 +233,16 @@ char* get_gpu_name() {
     int size = 0;
 
     char* name_pos = strstr(filedata, "3D controller");
-    if (name_pos == NULL) return NULL;
+    if (name_pos == NULL) {
+        name_pos = strstr(filedata, "VGA compatible controller");
 
-    name_pos += 15;
+        if (name_pos == NULL) {
+            name_pos = strstr(filedata, "Display controller");
+
+            if (name_pos == NULL) return NULL;
+            else name_pos += 20;
+        } else name_pos += 27;
+    } else name_pos += 15;
     
     while (name_pos[size] != '\n') { // Calculate the size of the mount point by looping until we hit a space
         size++;
@@ -248,7 +255,7 @@ char* get_gpu_name() {
 }
 
 struct ASCIIArt {
-    int max_size;
+    int max_size, line_count;
     char** lines;
 };
 
@@ -331,8 +338,19 @@ struct ASCIIArt* get_ascii_art() {
 
     art->lines = lines;
     art->max_size = max_size;
+    art->line_count = line_count;
 
     return art;
+}
+
+char* empty(int n) {
+    char* empty = calloc(sizeof(char), n);
+
+    for (int j = 0; j < n; j++) {
+        empty[j] = ' ';
+    }
+
+    return empty;
 }
 
 void main() {
@@ -349,18 +367,24 @@ void main() {
     int mins = (info.uptime / 60) - hrs * 60;
     int secs = info.uptime - hrs * 3600 - mins * 60;
     
-    printf("%s@%s\n", username, hostname);
-    printf("CPU: %dx %s [%.2fMHz]\n", cpu.core_count, cpu.name, cpu.max_frequency);
-    if (gpu_name != NULL) printf("GPU: %s\n", gpu_name);
-    printf("Uptime: %dhrs %dmins %dsecs\n", hrs, mins, secs);
-    printf("Ram usage: %u/%u\n", (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
-    printf("Shell: %s\n", shell);
-    printf("Kernel: %s\n", u.release);
+    printf("%s%s %s@%s\n", art->lines[0], empty(art->max_size - strlen(art->lines[0])), username, hostname);
+    printf("%s%s CPU: %dx %s [%.2fMHz]\n", art->lines[1], empty(art->max_size - strlen(art->lines[1])), cpu.core_count, cpu.name, cpu.max_frequency);
+    if (gpu_name != NULL) printf("%s%s GPU: %s\n", art->lines[2], empty(art->max_size - strlen(art->lines[2])), gpu_name);
+    printf("%s%s Uptime: %dhrs %dmins %dsecs\n", art->lines[3], empty(art->max_size - strlen(art->lines[3])), hrs, mins, secs);
+    printf("%s%s Ram usage: %u/%u\n", art->lines[4], empty(art->max_size - strlen(art->lines[4])), (info.totalram - info.freeram)/(1024*1024), info.totalram/(1024*1024));
+    printf("%s%s Shell: %s\n", art->lines[5], empty(art->max_size - strlen(art->lines[5])), shell);
+    printf("%s%s Kernel: %s\n", art->lines[6], empty(art->max_size - strlen(art->lines[6])), u.release);
 
     struct Disk* disklist = calloc(sizeof(struct Disk), 5);
     int count = get_disk_information(disklist, 5);
 
+    printf("%s\n", art->lines[7]);
+
     for (int i = 0; i < count; i++) {
-        printf("[%s] %uMiB/%uMiB - %s\n", disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
+        printf("%s%s [%s] %uMiB/%uMiB - %s\n", art->lines[8 + i], empty(art->max_size - strlen(art->lines[8 + i])), disklist[i].mount_point, disklist[i].used, disklist[i].capacity, disklist[i].filesystem);
+    }
+
+    for (int i = 0; i < art->line_count - 8 - count; i++) {
+        printf("%s\n", art->lines[8 + count + i]);
     }
 }
