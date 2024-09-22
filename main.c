@@ -320,9 +320,9 @@ struct ASCIIArt* get_ascii_art() {
         if (size > max_size) max_size = size;
 
         lines[line_count] = calloc(sizeof(char), size);
-        strcpy(lines[line_count], filedata+1 + size);
+        strncpy(lines[line_count], filedata, size);
 
-        filedata += size + 2;
+        filedata += size + 1;
         line_count++;
     }
 
